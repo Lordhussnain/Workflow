@@ -1,0 +1,44 @@
+name: Download Docker Image as TAR
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_name:
+        description: 'bash:latest'
+        required: true
+        default: 'bash:latest'
+
+jobs:
+  download:
+    name: Download and Save Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🔧 Install skopeo
+        run: |
+          sudo apt update -y
+          sudo apt install -y skopeo
+
+      - name: 🧹 Create output directory
+        run: mkdir -p output
+
+      - name: 🧪 Generate safe filename from image name
+        id: vars
+        run: |
+          IMAGE="${{ github.event.inputs.image_name }}"
+          SAFE_NAME=$(echo "$IMAGE" | sed 's|[^a-zA-Z0-9]|-|g')
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+          echo "safe_name=$SAFE_NAME" >> $GITHUB_OUTPUT
+
+      - name: 📥 Download and save image
+        run: |
+          IMAGE="${{ steps.vars.outputs.image }}"
+          FILE="output/${{ steps.vars.outputs.safe_name }}.tar"
+          echo "Downloading $IMAGE to $FILE"
+          skopeo copy docker://$IMAGE docker-archive:$FILE
+
+      - name: 📤 Upload TAR as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image-${{ steps.vars.outputs.safe_name }}
+          path: output/${{ steps.vars.outputs.safe_name }}.tar
