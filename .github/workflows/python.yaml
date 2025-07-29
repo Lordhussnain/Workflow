@@ -1,0 +1,40 @@
+name: Download python:bullseye Docker Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  download:
+    name: Download and Save python:bullseye Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🔧 Install skopeo
+        run: |
+          sudo apt update -y
+          sudo apt install -y skopeo
+
+      - name: 📦 Create output directory
+        run: mkdir -p output
+
+      - name: 🧪 Prepare image name and safe filename
+        id: vars
+        run: |
+          IMAGE="python:bullseye"
+          SAFE_NAME=$(echo "$IMAGE" | sed 's|[^a-zA-Z0-9]|-|g')
+          TAR_PATH="output/${SAFE_NAME}.tar"
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+          echo "safe_name=$SAFE_NAME" >> $GITHUB_OUTPUT
+          echo "tar_path=$TAR_PATH" >> $GITHUB_OUTPUT
+
+      - name: 📥 Download and save image
+        run: |
+          echo "Pulling image: ${{ steps.vars.outputs.image }}"
+          echo "Saving to: ${{ steps.vars.outputs.tar_path }}"
+          skopeo copy docker://${{ steps.vars.outputs.image }} docker-archive:${{ steps.vars.outputs.tar_path }}
+
+      - name: 📤 Upload .tar as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-bullseye-image
+          path: ${{ steps.vars.outputs.tar_path }}
