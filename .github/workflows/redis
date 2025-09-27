@@ -1,0 +1,31 @@
+name: Download Redis Docker Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  download:
+    name: Download and Save Image as TAR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🔧 Install skopeo
+        run: |
+          sudo apt update -y
+          sudo apt install -y skopeo
+
+      - name: 📦 Create output directory
+        run: mkdir -p output
+
+      - name: 📥 Pull and save redis as TAR
+        run: |
+          IMAGE="redis:latest"
+          OUTPUT_PATH="output/redis-latest.tar"
+          echo "Downloading $IMAGE and saving as $OUTPUT_PATH"
+          skopeo copy docker://$IMAGE docker-archive:$OUTPUT_PATH
+
+      - name: 📤 Upload TAR file as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: redis-latest-image
+          path: output/redis-latest.tar
