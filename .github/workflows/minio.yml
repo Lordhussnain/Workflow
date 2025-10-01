@@ -1,0 +1,31 @@
+name: Download MinIO Docker Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  download:
+    name: Download and Save Image as TAR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🔧 Install skopeo
+        run: |
+          sudo apt update -y
+          sudo apt install -y skopeo
+
+      - name: 📦 Create output directory
+        run: mkdir -p output
+
+      - name: 📥 Pull and save minio/minio as TAR
+        run: |
+          IMAGE="minio/minio:latest"
+          OUTPUT_PATH="output/minio-latest.tar"
+          echo "Downloading $IMAGE and saving as $OUTPUT_PATH"
+          skopeo copy docker://$IMAGE docker-archive:$OUTPUT_PATH
+
+      - name: 📤 Upload TAR file as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: minio-latest-image
+          path: output/minio-latest.tar
