@@ -11,8 +11,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-qemu-action@v2
-      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
       - name: Prepare output
@@ -21,17 +19,17 @@ jobs:
       - name: Build Docker image
         run: |
           IMAGE_TAG=${{ github.sha }}
-          DOCKER_BUILDKIT=1 docker build -t myorg/myapp LibreOfficeNodeImage:${IMAGE_TAG} .
-        working-directory: ./  # adjust if Dockerfile is in repo root
+          DOCKER_BUILDKIT=1 docker build -t myorg/myapp:${IMAGE_TAG} .
+        # If your Dockerfile is not in repo root, add -f path/to/Dockerfile and adjust context
 
       - name: Save image as TAR
         run: |
           IMAGE_TAG=${{ github.sha }}
-          TAR_PATH="output/myapp-${IMAGE_TAG}.tar"
+          TAR_PATH="output/libra-${IMAGE_TAG}.tar"
           docker save myorg/myapp:${IMAGE_TAG} -o "$TAR_PATH"
 
       - name: Upload TAR as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: myapp-tar
+          name: libra-tar
           path: output/
