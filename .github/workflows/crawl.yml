@@ -1,0 +1,35 @@
+name: Download crawl4ai Image and Save as TAR
+
+on:
+  workflow_dispatch:
+
+jobs:
+  download-and-save:
+    name: Pull image and save as TAR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🐳 Set up Docker Buildx (optional for compatibility)
+        uses: docker/setup-buildx-action@v2
+
+      - name: 🧰 Create output directory
+        run: mkdir -p output
+
+      - name: 📥 Pull unclecode/crawl4ai image
+        run: |
+          IMAGE_NAME="unclecode/crawl4ai"
+          echo "Pulling image: ${IMAGE_NAME}"
+          docker pull ${IMAGE_NAME}
+
+      - name: 🗜 Save image to TAR
+        run: |
+          IMAGE_NAME="unclecode/crawl4ai"
+          OUTPUT_PATH="output/unclecode-crawl4ai.tar"
+          echo "Saving ${IMAGE_NAME} to ${OUTPUT_PATH}"
+          docker save ${IMAGE_NAME} -o "${OUTPUT_PATH}"
+
+      - name: 📤 Upload TAR file as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: crawl4ai-tar
+          path: output/unclecode-crawl4ai.tar
