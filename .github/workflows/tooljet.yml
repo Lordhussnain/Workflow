@@ -1,0 +1,34 @@
+name: Download ToolJet CE LTS Image and Save as TAR
+
+on:
+  workflow_dispatch:
+
+jobs:
+  download-and-save:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🐳 Set up Docker
+        uses: docker/setup-buildx-action@v2
+
+      - name: 🧰 Create output directory
+        run: mkdir -p output
+
+      - name: 📥 Pull tooljet/tooljet-ce:ce-lts-latest
+        run: |
+          IMAGE_NAME="tooljet/tooljet-ce:ce-lts-latest"
+          echo "Pulling image: ${IMAGE_NAME}"
+          docker pull ${IMAGE_NAME}
+
+      - name: 🗜 Save image to TAR
+        run: |
+          IMAGE_NAME="tooljet/tooljet-ce:ce-lts-latest"
+          OUTPUT_PATH="output/tooljet-ce-ce-lts-latest.tar"
+          echo "Saving ${IMAGE_NAME} to ${OUTPUT_PATH}"
+          docker save ${IMAGE_NAME} -o "${OUTPUT_PATH}"
+
+      - name: 📤 Upload TAR file as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tooljet-ce-tar
+          path: output/tooljet-ce-ce-lts-latest.tar
