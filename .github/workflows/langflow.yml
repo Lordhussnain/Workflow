@@ -1,4 +1,4 @@
-name: Download LangFlow Image and Save as TAR
+name: Download LangFlow Image and Save as TAR (space-safe)
 
 on:
   workflow_dispatch:
@@ -14,21 +14,35 @@ jobs:
       - name: 🧰 Create output directory
         run: mkdir -p output
 
+      - name: 🧹 Free up space (optional cleanup)
+        run: |
+          docker system prune -af --disk-size=0 || true
+
       - name: 📥 Pull langflowai/langflow
         run: |
           IMAGE_NAME="langflowai/langflow"
           echo "Pulling image: ${IMAGE_NAME}"
           docker pull ${IMAGE_NAME}
 
-      - name: 🗜 Save image to TAR
+      - name: 🗜 Save image to TAR (with compression to save space)
         run: |
           IMAGE_NAME="langflowai/langflow"
           OUTPUT_PATH="output/langflow.tar"
           echo "Saving ${IMAGE_NAME} to ${OUTPUT_PATH}"
           docker save ${IMAGE_NAME} -o "${OUTPUT_PATH}"
+      # Optional: gzip to reduce size on disk
+      - name: 🗜 Compress TAR to tar.gz (optional)
+        if: always()
+        run: |
+          OUTPUT_PATH="output/langflow.tar"
+          GZ_PATH="output/langflow.tar.gz"
+          if [ -f "$OUTPUT_PATH" ]; then
+            gzip -c "$OUTPUT_PATH" > "$GZ_PATH"
+          fi
 
-      - name: 📤 Upload TAR file as artifact
+      - name: 📤 Upload TAR (or tar.gz) as artifact
         uses: actions/upload-artifact@v4
         with:
           name: langflow-tar
-          path: output/langflow.tar
+          path: output/langflow.tar.gz
+        if: always()
