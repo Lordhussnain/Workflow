@@ -1,10 +1,10 @@
-name: Download Waha ARM Image and Save as TAR
+name: Download Waha Image with Arch Check
 
 on:
   workflow_dispatch:
 
 jobs:
-  download-and-save:
+  pull-and-save:
     runs-on: ubuntu-latest
 
     steps:
@@ -14,21 +14,25 @@ jobs:
       - name: 🧰 Create output directory
         run: mkdir -p output
 
-      - name: 📥 Pull devlikeapro/waha:arm-2025.10.3
+      - name: 📥 Attempt to pull ARM tag (arm-2025.10.3)
+        id: pull-arm
         run: |
-          IMAGE_NAME="devlikeapro/waha:arm-2025.10.3"
-          echo "Pulling image: ${IMAGE_NAME}"
-          docker pull ${IMAGE_NAME}
+          IMAGE_ARM="devlikeapro/waha:arm-2025.10.3"
+          if docker pull ${IMAGE_ARM}; then
+            echo "PULLED_ARM=true" >> $GITHUB_OUTPUT
+            echo "Pulled ${IMAGE_ARM}"
+          else
+            echo "PULLED_ARM=false" >> $GITHUB_OUTPUT
+            echo "Failed to pull ${IMAGE_ARM}"
+          fi
 
-      - name: 🗜 Save image to TAR
+      - name: 🗜 Save image to TAR (if ARM pulled)
+        if: steps.pull-arm.outputs Pulled_ARM == 'true'
         run: |
-          IMAGE_NAME="devlikeapro/waha:arm-2025.10.3"
-          OUTPUT_PATH="output/waha-arm-2025.10.3.tar"
-          echo "Saving ${IMAGE_NAME} to ${OUTPUT_PATH}"
-          docker save ${IMAGE_NAME} -o "${OUTPUT_PATH}"
+          IMAGE_ARM="devlikeapro/waha:arm-2025.10.3"
+          docker save ${IMAGE_ARM} -o output/waha-arm-2025.10.3.tar
 
-      - name: 📤 Upload TAR file as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: waha-arm-tar
-          path: output/waha-arm-2025.10.3.tar
+      - name: 🧭 Fallback message (if ARM not available)
+        if: steps.pull-arm.outputs.Pulled_ARM != 'true'
+        run: |
+          echo "The requested ARM tag could not be pulled on an amd64 runner. Check for an amd64-compatible tag or use an ARM runner."
