@@ -1,4 +1,4 @@
-name: Download WAHA ARM Image and Save as TAR
+name: Download WAHA ARM Image and Save as TAR (via buildx + QEMU)
 
 on:
   workflow_dispatch:
@@ -8,27 +8,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🐳 Set up Docker
+      - name: 🐧 Checkout (not required, but handy)
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Set up QEMU (for ARM emulation)
+        uses: docker/setup-qemu-action@v2
+
+      - name: 🐳 Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
       - name: 🧰 Create output directory
         run: mkdir -p output
 
-      - name: 📥 Pull devlikeapro/waha:arm
+      - name: 📝 Create minimal Dockerfile that references the ARM image
         run: |
-          IMAGE_NAME="devlikeapro/waha:arm"
-          echo "Pulling image: ${IMAGE_NAME}"
-          docker pull ${IMAGE_NAME}
+          cat > Dockerfile <<'EOF'
+          FROM devlikeapro/waha:arm
+          # no extra layers — we just want to pull the image and export it
+          EOF
 
-      - name: 🗜 Save image to TAR
+      - name: 🛠 Build (pull) the ARM image and export as TAR using buildx
         run: |
-          IMAGE_NAME="devlikeapro/waha:arm"
-          OUTPUT_PATH="output/waha-arm.tar"
-          echo "Saving ${IMAGE_NAME} to ${OUTPUT_PATH}"
-          docker save ${IMAGE_NAME} -o "${OUTPUT_PATH}"
+          # Create a builder (if not already present) and use it
+          docker buildx create --use --name xbuilder || true
+          # Pull base image via a trivial build and output the docker image as a tar
+          docker buildx build \
+            --platform=linux/arm64 \
+            --pull \
+            --output=type=docker,dest=output/waha-arm.tar \
+            -t waha-arm-temp:latest \
+            .
 
       - name: 📤 Upload TAR file as artifact
         uses: actions/upload-artifact@v4
         with:
           name: waha-arm-tar
           path: output/waha-arm.tar
+
