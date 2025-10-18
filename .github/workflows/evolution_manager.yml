@@ -1,0 +1,40 @@
+name: Download Evolution Manager ARM Image and Save as TAR
+
+on:
+  workflow_dispatch:
+
+jobs:
+  download-and-save:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⚙️ Set up QEMU (for ARM emulation)
+        uses: docker/setup-qemu-action@v2
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: 🧰 Create output directory
+        run: mkdir -p output
+
+      - name: 📝 Create minimal Dockerfile for atendai/evolution-manager
+        run: |
+          cat > Dockerfile <<'EOF'
+          FROM atendai/evolution-manager:latest
+          EOF
+
+      - name: 🛠 Build (pull) Evolution Manager ARM image and export as TAR
+        run: |
+          docker buildx create --use --name xbuilder || true
+          docker buildx build \
+            --platform=linux/arm64 \
+            --pull \
+            --output=type=docker,dest=output/evolution-manager-arm.tar \
+            -t atendai-evolution-manager:arm \
+            .
+
+      - name: 📤 Upload TAR file as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: evolution-manager-arm-tar
+          path: output/evolution-manager-arm.tar
