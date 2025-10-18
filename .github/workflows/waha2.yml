@@ -1,51 +1,34 @@
-name: Download Waha ARM Docker Image
+name: Download WAHA ARM Image and Save as TAR
 
 on:
   workflow_dispatch:
 
 jobs:
-  download:
-    name: Download and Save Image as TAR
+  download-and-save:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🔧 Set up Docker (buildx)
+      - name: 🐳 Set up Docker
         uses: docker/setup-buildx-action@v2
 
-      - name: 📦 Create output directory
-        run: |
-          mkdir -p output
+      - name: 🧰 Create output directory
+        run: mkdir -p output
 
-      - name: 📥 Pull ARM image (arm-2025.10.3)
-        id: pull-arm
+      - name: 📥 Pull devlikeapro/waha:arm
         run: |
-          IMAGE="devlikeapro/waha:arm-2025.10.3"
-          echo "Attempting to pull $IMAGE"
-          if docker pull $IMAGE; then
-            echo "PULLED_ARM=true" >> $GITHUB_OUTPUT
-            echo "Pulled ${IMAGE}"
-          else
-            echo "PULLED_ARM=false" >> $GITHUB_OUTPUT
-            echo "Failed to pull ${IMAGE}"
-          fi
+          IMAGE_NAME="devlikeapro/waha:arm"
+          echo "Pulling image: ${IMAGE_NAME}"
+          docker pull ${IMAGE_NAME}
 
-      - name: 🗜 Save image to TAR (ARM tag)
-        if: steps.pull-arm.outputs.PULLED_ARM == 'true'
+      - name: 🗜 Save image to TAR
         run: |
-          IMAGE="devlikeapro/waha:arm-2025.10.3"
-          OUTPUT_PATH="output/waha-arm-2025.10.3.tar"
-          echo "Saving ${IMAGE} to ${OUTPUT_PATH}"
-          docker save ${IMAGE} -o "${OUTPUT_PATH}"
-
-      - name: 💬 Arm tag unavailable message
-        if: steps.pull-arm.outputs.PULLED_ARM != 'true'
-        run: |
-          echo "ARM tag could not be pulled on this runner (amd64)."
-          echo "Consider using an amd64-compatible tag or an ARM64 runner. Refer to the image registry for available tags."
+          IMAGE_NAME="devlikeapro/waha:arm"
+          OUTPUT_PATH="output/waha-arm.tar"
+          echo "Saving ${IMAGE_NAME} to ${OUTPUT_PATH}"
+          docker save ${IMAGE_NAME} -o "${OUTPUT_PATH}"
 
       - name: 📤 Upload TAR file as artifact
-        if: steps.pull-arm.outputs.PULLED_ARM == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: waha-arm-tar
-          path: output/waha-arm-2025.10.3.tar
+          path: output/waha-arm.tar
